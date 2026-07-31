@@ -22,7 +22,9 @@
   *{box-sizing:border-box; margin:0; padding:0;}
 
   html,body{
-    height:100%;
+    min-height:100%;
+    width:100%;
+    overflow-x:hidden;
     background: var(--neutral-200);
     font-family: var(--font-body);
     color: var(--neutral-900);
@@ -33,15 +35,18 @@
     display:flex;
     justify-content:center;
     min-height:100vh;
+    width:100%;
   }
 
   .app{
     width:100%;
     max-width:480px;
     min-height:100vh;
+    min-width:0;
     background: var(--neutral-100);
     display:flex;
     flex-direction:column;
+    overflow-x:hidden;
   }
 
   header{
@@ -97,6 +102,7 @@
     align-items:center;
     gap:14px;
     width:100%;
+    min-width:0;
     border:none;
     border-radius:10px;
     padding:20px 18px;
@@ -107,6 +113,8 @@
     text-align:left;
     transition: transform .08s ease, filter .15s ease;
   }
+
+  .big-btn > span:last-child{ min-width:0; overflow-wrap:anywhere; }
 
   .big-btn:active{ transform: scale(0.98); }
 
@@ -154,15 +162,16 @@
     display:flex;
     align-items:center;
     justify-content:space-between;
+    gap:10px;
     padding:12px 14px;
     border:1px solid var(--neutral-200);
     border-radius:8px;
     margin-bottom:8px;
   }
 
-  .car-row .car-info{ display:flex; flex-direction:column; }
+  .car-row .car-info{ display:flex; flex-direction:column; min-width:0; }
   .car-row .placa{ font-weight:700; font-size:14.5px; letter-spacing:.02em; }
-  .car-row .modelo{ font-size:12.5px; color:#666; }
+  .car-row .modelo{ font-size:12.5px; color:#666; overflow-wrap:anywhere; }
 
   .badge{
     font-size:11px;
@@ -233,13 +242,14 @@
 
   select, input[type="text"], input[type="number"], textarea{
     font-family: var(--font-body);
-    font-size:15.5px;
+    font-size:16px;
     padding:13px 14px;
     border:1.5px solid var(--neutral-200);
     border-radius:8px;
     background: var(--neutral-100);
     color: var(--neutral-900);
     width:100%;
+    max-width:100%;
   }
 
   select:focus, input:focus, textarea:focus{
@@ -319,8 +329,52 @@
 
   .summary-grid{
     display:grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(2, 1fr);
     gap:8px;
+  }
+
+  .km-por-veiculo{
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+  }
+
+  .km-pv-title{
+    font-family: var(--font-display);
+    font-size:13px;
+    font-weight:600;
+    text-transform:uppercase;
+    letter-spacing:.06em;
+    color:#555;
+  }
+
+  .km-veiculo-row{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    padding:12px 14px;
+    border:1px solid var(--neutral-200);
+    border-radius:8px;
+  }
+
+  .km-veiculo-row .car-info{ display:flex; flex-direction:column; min-width:0; }
+  .km-veiculo-row .placa{ font-weight:700; font-size:14px; letter-spacing:.02em; }
+  .km-veiculo-row .modelo{ font-size:12px; color:#777; overflow-wrap:anywhere; }
+
+  .km-veiculo-row .km-valor{
+    font-family: var(--font-display);
+    font-weight:700;
+    font-size:16px;
+    color: var(--delp-red);
+    white-space:nowrap;
+  }
+
+  .km-veiculo-row .km-valor .unidade{
+    font-size:11px;
+    font-weight:600;
+    color:#999;
+    margin-left:3px;
   }
 
   .summary-card{
@@ -393,17 +447,23 @@
     justify-content:space-between;
     align-items:flex-start;
     gap:8px;
+    min-width:0;
   }
+
+  .record-card .rc-top > div:first-child{ min-width:0; }
+  .record-card .rc-top .badge{ flex-shrink:0; }
 
   .record-card .rc-placa{
     font-family: var(--font-display);
     font-weight:700;
     font-size:15px;
+    overflow-wrap:anywhere;
   }
 
   .record-card .rc-modelo{
     font-size:12px;
     color:#777;
+    overflow-wrap:anywhere;
   }
 
   .record-card .rc-grid{
@@ -411,7 +471,10 @@
     grid-template-columns: 1fr 1fr;
     gap:6px 14px;
     font-size:12.5px;
+    min-width:0;
   }
+
+  .record-card .rc-grid .rc-item{ min-width:0; overflow-wrap:anywhere; }
 
   .record-card .rc-grid .rc-item span:first-child{
     display:block;
@@ -496,6 +559,47 @@
     border-radius:8px;
     cursor:pointer;
     width:100%;
+  }
+
+  @media (max-width: 360px){
+    header{ padding:16px 16px 14px; }
+    main{ padding:16px; gap:14px; }
+    .big-btn{ padding:16px 14px; font-size:15.5px; }
+    .record-card .rc-grid{ grid-template-columns: 1fr; }
+    .summary-card .num{ font-size:17px; }
+  }
+
+  /* ---------- DESKTOP: apenas a view de Acompanhamento se expande ---------- */
+
+  @media (min-width: 820px){
+    .app.app--wide{
+      max-width: 1040px;
+    }
+
+    .app.app--wide main{
+      padding: 32px 44px 40px;
+    }
+
+    .app.app--wide #view-historico .summary-grid{
+      max-width: 420px;
+    }
+
+    .app.app--wide #km-veiculo-list{
+      display:grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap:10px;
+    }
+
+    .app.app--wide #record-list{
+      display:grid;
+      grid-template-columns: repeat(2, 1fr);
+      align-items:start;
+      gap:12px;
+    }
+
+    .app.app--wide .filter-row{
+      max-width: 420px;
+    }
   }
 
 </style>
@@ -622,6 +726,11 @@
 
       <div class="summary-grid" id="summary-grid"></div>
 
+      <div class="km-por-veiculo">
+        <h2 class="km-pv-title">KM rodado por veículo</h2>
+        <div id="km-veiculo-list"></div>
+      </div>
+
       <div class="filter-row">
         <div class="filter-chip active" data-filter="todos" onclick="setFiltro('todos')">Todos</div>
         <div class="filter-chip" data-filter="aberto" onclick="setFiltro('aberto')">Em uso</div>
@@ -675,6 +784,7 @@
   function goTo(viewName){
     document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
     document.getElementById("view-" + viewName).classList.add("active");
+    document.querySelector(".app").classList.toggle("app--wide", viewName === "historico");
     if (viewName === "home") renderHome();
     if (viewName === "saida") renderSaidaSelect();
     if (viewName === "retorno") renderRetornoSelect();
@@ -710,13 +820,13 @@
 
   function renderHistorico(){
     renderSummary();
+    renderKmPorVeiculo();
     renderRecordList();
   }
 
   function renderSummary(){
     const abertos = registros.filter(r => r.status === "aberto");
     const fechados = registros.filter(r => r.status === "fechado");
-    const kmTotal = fechados.reduce((soma, r) => soma + r.kmPercorrido, 0);
 
     document.getElementById("summary-grid").innerHTML = `
       <div class="summary-card">
@@ -727,11 +837,25 @@
         <div class="num green">${fechados.length}</div>
         <div class="lbl">Concluídos</div>
       </div>
-      <div class="summary-card">
-        <div class="num">${kmTotal.toLocaleString('pt-BR')}</div>
-        <div class="lbl">KM total</div>
-      </div>
     `;
+  }
+
+  function renderKmPorVeiculo(){
+    const list = document.getElementById("km-veiculo-list");
+    list.innerHTML = frota.map(carro => {
+      const kmDoCarro = registros
+        .filter(r => r.placa === carro.placa && r.status === "fechado")
+        .reduce((soma, r) => soma + r.kmPercorrido, 0);
+      return `
+        <div class="km-veiculo-row">
+          <div class="car-info">
+            <span class="placa">${carro.placa}</span>
+            <span class="modelo">${carro.modelo}</span>
+          </div>
+          <div class="km-valor">${kmDoCarro.toLocaleString('pt-BR')}<span class="unidade">km</span></div>
+        </div>
+      `;
+    }).join("");
   }
 
   function renderRecordList(){
