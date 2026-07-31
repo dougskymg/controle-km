@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>Controle de KM — Frota DELP</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --delp-red: #CC0F10;
+    --neutral-100: #FFFFFF;
+    --neutral-200: #EAE5DF;
+    --neutral-400: #B0B0B0;
+    --neutral-900: #000000;
+    --ok: #0B861D;
+    --font-display: 'Barlow', 'Inter', system-ui, sans-serif;
+    --font-body: 'Barlow', 'Inter', system-ui, sans-serif;
+  }
+
+  *{box-sizing:border-box; margin:0; padding:0;}
+
+  html,body{
+    height:100%;
+    background: var(--neutral-200);
+    font-family: var(--font-body);
+    color: var(--neutral-900);
+    -webkit-font-smoothing:antialiased;
+  }
+
+  body{
+    display:flex;
+    justify-content:center;
+    min-height:100vh;
+  }
+
+  .app{
+    width:100%;
+    max-width:480px;
+    min-height:100vh;
+    background: var(--neutral-100);
+    display:flex;
+    flex-direction:column;
+  }
+
+  header{
+    background: var(--neutral-900);
+    color: var(--neutral-100);
+    padding:20px 20px 18px;
+    position:relative;
+  }
+
+  header .eyebrow{
+    font-size:11px;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+    color: var(--neutral-400);
+    font-weight:600;
+    margin-bottom:4px;
+  }
+
+  header h1{
+    font-family: var(--font-display);
+    font-weight:700;
+    font-size:22px;
+    letter-spacing:-0.01em;
+  }
+
+  header .accent-bar{
+    position:absolute;
+    left:0; bottom:0;
+    height:3px;
+    width:56px;
+    background: var(--delp-red);
+  }
+
+  main{
+    flex:1;
+    padding:20px;
+    display:flex;
+    flex-direction:column;
+    gap:16px;
+  }
+
+  /* ---------- HOME ---------- */
+
+  .home-actions{
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+    margin-top:4px;
+  }
+
+  .big-btn{
+    display:flex;
+    align-items:center;
+    gap:14px;
+    width:100%;
+    border:none;
+    border-radius:10px;
+    padding:20px 18px;
+    font-family: var(--font-display);
+    font-weight:600;
+    font-size:17px;
+    cursor:pointer;
+    text-align:left;
+    transition: transform .08s ease, filter .15s ease;
+  }
+
+  .big-btn:active{ transform: scale(0.98); }
+
+  .big-btn.saida{
+    background: var(--delp-red);
+    color: var(--neutral-100);
+  }
+
+  .big-btn.retorno{
+    background: var(--neutral-100);
+    color: var(--neutral-900);
+    border: 2px solid var(--neutral-900);
+  }
+
+  .big-btn .icon{
+    font-size:22px;
+    line-height:1;
+    flex-shrink:0;
+  }
+
+  .big-btn .label-sub{
+    display:block;
+    font-family: var(--font-body);
+    font-weight:400;
+    font-size:12.5px;
+    opacity:.85;
+    margin-top:2px;
+  }
+
+  .frota-status{
+    margin-top:8px;
+  }
+
+  .frota-status h2{
+    font-family: var(--font-display);
+    font-size:13px;
+    font-weight:600;
+    text-transform:uppercase;
+    letter-spacing:.06em;
+    color: #555;
+    margin-bottom:10px;
+  }
+
+  .car-row{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:12px 14px;
+    border:1px solid var(--neutral-200);
+    border-radius:8px;
+    margin-bottom:8px;
+  }
+
+  .car-row .car-info{ display:flex; flex-direction:column; }
+  .car-row .placa{ font-weight:700; font-size:14.5px; letter-spacing:.02em; }
+  .car-row .modelo{ font-size:12.5px; color:#666; }
+
+  .badge{
+    font-size:11px;
+    font-weight:600;
+    padding:4px 9px;
+    border-radius:20px;
+    white-space:nowrap;
+  }
+
+  .badge.disponivel{ background: rgba(11,134,29,0.12); color: var(--ok); }
+  .badge.em-uso{ background: rgba(204,15,16,0.10); color: var(--delp-red); }
+
+  /* ---------- FORM VIEWS ---------- */
+
+  .view{ display:none; flex-direction:column; gap:16px; }
+  .view.active{ display:flex; }
+
+  .back-link{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    font-size:13.5px;
+    font-weight:600;
+    color:#555;
+    background:none;
+    border:none;
+    cursor:pointer;
+    padding:4px 0;
+    width:fit-content;
+  }
+
+  .view-title{
+    font-family: var(--font-display);
+    font-weight:700;
+    font-size:19px;
+  }
+
+  .view-title .tag{
+    display:inline-block;
+    font-size:11px;
+    font-weight:700;
+    text-transform:uppercase;
+    letter-spacing:.06em;
+    color: var(--neutral-100);
+    background: var(--delp-red);
+    padding:3px 8px;
+    border-radius:5px;
+    margin-bottom:8px;
+  }
+
+  .field{
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+  }
+
+  .field label{
+    font-size:13px;
+    font-weight:600;
+    color:#333;
+  }
+
+  .field .hint{
+    font-size:12px;
+    color:#888;
+    font-weight:400;
+  }
+
+  select, input[type="text"], input[type="number"], textarea{
+    font-family: var(--font-body);
+    font-size:15.5px;
+    padding:13px 14px;
+    border:1.5px solid var(--neutral-200);
+    border-radius:8px;
+    background: var(--neutral-100);
+    color: var(--neutral-900);
+    width:100%;
+  }
+
+  select:focus, input:focus, textarea:focus{
+    outline:none;
+    border-color: var(--delp-red);
+    box-shadow: 0 0 0 3px rgba(204,15,16,0.12);
+  }
+
+  textarea{ resize:vertical; min-height:70px; }
+
+  .km-readonly{
+    padding:13px 14px;
+    border-radius:8px;
+    background: var(--neutral-200);
+    font-size:15.5px;
+    font-weight:600;
+  }
+
+  .submit-btn{
+    margin-top:4px;
+    border:none;
+    border-radius:8px;
+    padding:16px;
+    font-family: var(--font-display);
+    font-weight:700;
+    font-size:15.5px;
+    background: var(--delp-red);
+    color: var(--neutral-100);
+    cursor:pointer;
+  }
+
+  .submit-btn:active{ filter:brightness(0.92); }
+
+  .submit-btn:disabled{
+    background: var(--neutral-400);
+    cursor:not-allowed;
+  }
+
+  .error-msg{
+    font-size:13px;
+    color: var(--delp-red);
+    font-weight:600;
+    display:none;
+  }
+
+  .error-msg.show{ display:block; }
+
+  .empty-msg{
+    font-size:13.5px;
+    color:#888;
+    padding:14px;
+    text-align:center;
+    border:1.5px dashed var(--neutral-200);
+    border-radius:8px;
+  }
+
+  /* ---------- CONFIRMATION ---------- */
+
+  .confirm-box{
+    text-align:center;
+    padding:32px 20px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:10px;
+  }
+
+  .confirm-box .check{
+    width:52px; height:52px;
+    border-radius:50%;
+    background: rgba(11,134,29,0.12);
+    color: var(--ok);
+    display:flex; align-items:center; justify-content:center;
+    font-size:26px;
+    margin-bottom:6px;
+  }
+
+  .confirm-box h3{
+    font-family: var(--font-display);
+    font-size:18px;
+    font-weight:700;
+  }
+
+  .confirm-box p{ font-size:13.5px; color:#666; }
+
+  .confirm-detail{
+    width:100%;
+    text-align:left;
+    background: var(--neutral-200);
+    border-radius:8px;
+    padding:14px;
+    font-size:13.5px;
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+    margin-top:6px;
+  }
+
+  .confirm-detail .row{ display:flex; justify-content:space-between; gap:12px; }
+  .confirm-detail .row span:first-child{ color:#666; }
+  .confirm-detail .row span:last-child{ font-weight:600; text-align:right; }
+
+  .ghost-btn{
+    margin-top:8px;
+    border:2px solid var(--neutral-900);
+    background:none;
+    color: var(--neutral-900);
+    font-family: var(--font-display);
+    font-weight:600;
+    font-size:14.5px;
+    padding:12px 18px;
+    border-radius:8px;
+    cursor:pointer;
+    width:100%;
+  }
+
+  /* ---------- DEV PANEL (temporário) ---------- */
+
+  .dev-panel{
+    margin-top:auto;
+    border-top:1px dashed var(--neutral-400);
+    padding-top:14px;
+  }
+
+  .dev-panel summary{
+    font-size:12px;
+    font-weight:600;
+    color:#888;
+    cursor:pointer;
+    list-style:none;
+  }
+
+  .dev-panel summary::-webkit-details-marker{ display:none; }
+
+  .dev-panel summary::before{ content:"⚙ "; }
+
+  .log-row{
+    font-size:11.5px;
+    color:#666;
+    padding:8px 0;
+    border-bottom:1px solid var(--neutral-200);
+    font-family: 'Inter', monospace;
+  }
+
+  .dev-note{
+    font-size:11px;
+    color:#999;
+    margin-top:8px;
+    line-height:1.5;
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <header>
+    <div class="eyebrow">Facilities · DELP Engenharia</div>
+    <h1>Controle de KM — Frota</h1>
+    <div class="accent-bar"></div>
+  </header>
+
+  <main>
+
+    <!-- ===================== HOME ===================== -->
+    <section id="view-home" class="view active">
+      <div class="home-actions">
+        <button class="big-btn saida" onclick="goTo('saida')">
+          <span class="icon">🚗</span>
+          <span>
+            Registrar Saída
+            <span class="label-sub">Pegar um carro disponível</span>
+          </span>
+        </button>
+        <button class="big-btn retorno" onclick="goTo('retorno')">
+          <span class="icon">↩︎</span>
+          <span>
+            Registrar Retorno
+            <span class="label-sub">Devolver um carro em uso</span>
+          </span>
+        </button>
+      </div>
+
+      <div class="frota-status">
+        <h2>Status da frota</h2>
+        <div id="frota-list"></div>
+      </div>
+
+      <details class="dev-panel">
+        <summary>Painel de teste (visível só nesta fase)</summary>
+        <div id="dev-log"></div>
+        <div class="dev-note">
+          Este bloco existe só para conferirmos o comportamento antes de
+          integrar com o Google Sheets. Os dados aqui ficam em memória —
+          somem se a página for recarregada.
+        </div>
+      </details>
+    </section>
+
+    <!-- ===================== SAÍDA ===================== -->
+    <section id="view-saida" class="view">
+      <button class="back-link" onclick="goTo('home')">← Voltar</button>
+      <div>
+        <div class="view-title tag">Saída</div>
+        <div class="view-title">Registrar saída de veículo</div>
+      </div>
+
+      <form id="form-saida" onsubmit="return submitSaida(event)">
+        <div class="field">
+          <label for="saida-carro">Veículo</label>
+          <select id="saida-carro" required>
+            <option value="" disabled selected>Selecione um carro disponível</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="saida-nome">Seu nome</label>
+          <input type="text" id="saida-nome" placeholder="Nome completo" required>
+        </div>
+
+        <div class="field">
+          <label for="saida-km">KM inicial (odômetro)</label>
+          <span class="hint">Confira o painel do carro antes de sair</span>
+          <input type="number" id="saida-km" inputmode="numeric" placeholder="Ex: 45210" min="0" required>
+        </div>
+
+        <div class="field">
+          <label for="saida-motivo">Destino / motivo <span class="hint">(opcional)</span></label>
+          <textarea id="saida-motivo" placeholder="Ex: visita ao Porto do Açu, reunião externa..."></textarea>
+        </div>
+
+        <div class="error-msg" id="saida-error"></div>
+
+        <button type="submit" class="submit-btn">Confirmar saída</button>
+      </form>
+    </section>
+
+    <!-- ===================== RETORNO ===================== -->
+    <section id="view-retorno" class="view">
+      <button class="back-link" onclick="goTo('home')">← Voltar</button>
+      <div>
+        <div class="view-title tag" style="background:var(--neutral-900)">Retorno</div>
+        <div class="view-title">Registrar retorno de veículo</div>
+      </div>
+
+      <form id="form-retorno" onsubmit="return submitRetorno(event)">
+        <div class="field">
+          <label for="retorno-carro">Veículo</label>
+          <select id="retorno-carro" required onchange="updateRetornoInfo()">
+            <option value="" disabled selected>Selecione um carro em uso</option>
+          </select>
+        </div>
+
+        <div id="retorno-info" style="display:none;">
+          <div class="field">
+            <label>KM inicial registrado</label>
+            <div class="km-readonly" id="retorno-km-inicial">—</div>
+          </div>
+
+          <div class="field">
+            <label for="retorno-km">KM final (odômetro)</label>
+            <span class="hint">Confira o painel do carro ao devolver</span>
+            <input type="number" id="retorno-km" inputmode="numeric" placeholder="Ex: 45340" min="0" required>
+          </div>
+        </div>
+
+        <div class="error-msg" id="retorno-error"></div>
+
+        <button type="submit" class="submit-btn">Confirmar retorno</button>
+      </form>
+    </section>
+
+    <!-- ===================== CONFIRMAÇÃO ===================== -->
+    <section id="view-confirm" class="view">
+      <div class="confirm-box">
+        <div class="check">✓</div>
+        <h3 id="confirm-title">Registro salvo</h3>
+        <p id="confirm-sub">Tudo certo por aqui.</p>
+        <div class="confirm-detail" id="confirm-detail"></div>
+        <button class="ghost-btn" onclick="goTo('home')">Voltar ao início</button>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<script>
+  // ============================================================
+  // DADOS EM MEMÓRIA — protótipo de fase de moldagem.
+  // Na integração final, isso vem/vai para o Google Sheets via
+  // Apps Script. Nada aqui é salvo entre recarregamentos de página.
+  // ============================================================
+
+  let frota = [
+    { placa: "ABC-1234", modelo: "Chevrolet Onix", status: "disponivel", kmAtual: 45210 },
+    { placa: "DEF-5678", modelo: "Fiat Strada",    status: "disponivel", kmAtual: 78340 },
+    { placa: "GHI-9012", modelo: "Renault Duster", status: "disponivel", kmAtual: 32050 },
+    { placa: "JKL-3456", modelo: "VW Saveiro",     status: "disponivel", kmAtual: 61120 },
+  ];
+
+  let registros = []; // histórico de uso (saída + retorno)
+  let idCounter = 1;
+
+  function formatDateTime(date){
+    if (!date) return "—";
+    return date.toLocaleString('pt-BR', {
+      day: '2-digit', month: '2-digit', year: 'numeric',
+      hour: '2-digit', minute: '2-digit'
+    });
+  }
+
+  function goTo(viewName){
+    document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
+    document.getElementById("view-" + viewName).classList.add("active");
+    if (viewName === "home") renderHome();
+    if (viewName === "saida") renderSaidaSelect();
+    if (viewName === "retorno") renderRetornoSelect();
+  }
+
+  function renderHome(){
+    const list = document.getElementById("frota-list");
+    list.innerHTML = "";
+    frota.forEach(carro => {
+      const row = document.createElement("div");
+      row.className = "car-row";
+      const statusLabel = carro.status === "disponivel" ? "Disponível" : "Em uso";
+      const badgeClass = carro.status === "disponivel" ? "disponivel" : "em-uso";
+      row.innerHTML = `
+        <div class="car-info">
+          <span class="placa">${carro.placa}</span>
+          <span class="modelo">${carro.modelo} · ${carro.kmAtual.toLocaleString('pt-BR')} km</span>
+        </div>
+        <span class="badge ${badgeClass}">${statusLabel}</span>
+      `;
+      list.appendChild(row);
+    });
+    renderDevLog();
+  }
+
+  function renderSaidaSelect(){
+    const select = document.getElementById("saida-carro");
+    select.innerHTML = '<option value="" disabled selected>Selecione um carro disponível</option>';
+    const disponiveis = frota.filter(c => c.status === "disponivel");
+    if (disponiveis.length === 0){
+      const opt = document.createElement("option");
+      opt.disabled = true;
+      opt.textContent = "Nenhum carro disponível no momento";
+      select.appendChild(opt);
+    }
+    disponiveis.forEach(carro => {
+      const opt = document.createElement("option");
+      opt.value = carro.placa;
+      opt.textContent = `${carro.placa} — ${carro.modelo}`;
+      select.appendChild(opt);
+    });
+    document.getElementById("form-saida").reset();
+    document.getElementById("saida-error").classList.remove("show");
+  }
+
+  function renderRetornoSelect(){
+    const select = document.getElementById("retorno-carro");
+    select.innerHTML = '<option value="" disabled selected>Selecione um carro em uso</option>';
+    const emUso = frota.filter(c => c.status === "em-uso");
+    if (emUso.length === 0){
+      const opt = document.createElement("option");
+      opt.disabled = true;
+      opt.textContent = "Nenhum carro em uso no momento";
+      select.appendChild(opt);
+    }
+    emUso.forEach(carro => {
+      const opt = document.createElement("option");
+      opt.value = carro.placa;
+      opt.textContent = `${carro.placa} — ${carro.modelo}`;
+      select.appendChild(opt);
+    });
+    document.getElementById("form-retorno").reset();
+    document.getElementById("retorno-info").style.display = "none";
+    document.getElementById("retorno-error").classList.remove("show");
+  }
+
+  function updateRetornoInfo(){
+    const placa = document.getElementById("retorno-carro").value;
+    const registro = registros.find(r => r.placa === placa && r.status === "aberto");
+    if (registro){
+      document.getElementById("retorno-km-inicial").textContent =
+        registro.kmInicial.toLocaleString('pt-BR') + " km";
+      document.getElementById("retorno-info").style.display = "flex";
+      document.getElementById("retorno-info").style.flexDirection = "column";
+      document.getElementById("retorno-info").style.gap = "16px";
+    }
+  }
+
+  function submitSaida(e){
+    e.preventDefault();
+    const placa = document.getElementById("saida-carro").value;
+    const nome = document.getElementById("saida-nome").value.trim();
+    const km = parseInt(document.getElementById("saida-km").value, 10);
+    const motivo = document.getElementById("saida-motivo").value.trim();
+    const errorEl = document.getElementById("saida-error");
+
+    const carro = frota.find(c => c.placa === placa);
+
+    if (!carro){
+      errorEl.textContent = "Selecione um veículo válido.";
+      errorEl.classList.add("show");
+      return false;
+    }
+    if (km < carro.kmAtual){
+      errorEl.textContent = `KM inicial não pode ser menor que o último KM registrado (${carro.kmAtual.toLocaleString('pt-BR')} km).`;
+      errorEl.classList.add("show");
+      return false;
+    }
+
+    errorEl.classList.remove("show");
+
+    carro.status = "em-uso";
+
+    const registro = {
+      id: idCounter++,
+      placa,
+      colaborador: nome,
+      kmInicial: km,
+      motivo,
+      dataSaida: new Date(),
+      status: "aberto"
+    };
+    registros.push(registro);
+
+    showConfirm("Saída registrada", `${carro.modelo} (${placa}) liberado para ${nome}.`, [
+      ["Veículo", `${placa} — ${carro.modelo}`],
+      ["Colaborador", nome],
+      ["Data/hora saída", formatDateTime(registro.dataSaida)],
+      ["KM inicial", km.toLocaleString('pt-BR') + " km"],
+      ["Destino/motivo", motivo || "—"],
+    ]);
+
+    return false;
+  }
+
+  function submitRetorno(e){
+    e.preventDefault();
+    const placa = document.getElementById("retorno-carro").value;
+    const kmFinal = parseInt(document.getElementById("retorno-km").value, 10);
+    const errorEl = document.getElementById("retorno-error");
+
+    const registro = registros.find(r => r.placa === placa && r.status === "aberto");
+    const carro = frota.find(c => c.placa === placa);
+
+    if (!registro || !carro){
+      errorEl.textContent = "Selecione um veículo válido.";
+      errorEl.classList.add("show");
+      return false;
+    }
+    if (kmFinal < registro.kmInicial){
+      errorEl.textContent = `KM final não pode ser menor que o KM inicial (${registro.kmInicial.toLocaleString('pt-BR')} km).`;
+      errorEl.classList.add("show");
+      return false;
+    }
+
+    errorEl.classList.remove("show");
+
+    registro.kmFinal = kmFinal;
+    registro.kmPercorrido = kmFinal - registro.kmInicial;
+    registro.dataRetorno = new Date();
+    registro.status = "fechado";
+
+    carro.status = "disponivel";
+    carro.kmAtual = kmFinal;
+
+    showConfirm("Retorno registrado", `${carro.modelo} (${placa}) disponível novamente.`, [
+      ["Veículo", `${placa} — ${carro.modelo}`],
+      ["Colaborador", registro.colaborador],
+      ["Data/hora saída", formatDateTime(registro.dataSaida)],
+      ["Data/hora retorno", formatDateTime(registro.dataRetorno)],
+      ["KM inicial", registro.kmInicial.toLocaleString('pt-BR') + " km"],
+      ["KM final", kmFinal.toLocaleString('pt-BR') + " km"],
+      ["KM percorrido", registro.kmPercorrido.toLocaleString('pt-BR') + " km"],
+    ]);
+
+    return false;
+  }
+
+  function showConfirm(title, sub, rows){
+    document.getElementById("confirm-title").textContent = title;
+    document.getElementById("confirm-sub").textContent = sub;
+    const detail = document.getElementById("confirm-detail");
+    detail.innerHTML = rows.map(([label, value]) =>
+      `<div class="row"><span>${label}</span><span>${value}</span></div>`
+    ).join("");
+    document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
+    document.getElementById("view-confirm").classList.add("active");
+  }
+
+  function renderDevLog(){
+    const log = document.getElementById("dev-log");
+    if (registros.length === 0){
+      log.innerHTML = '<div class="log-row">Nenhum registro ainda nesta sessão.</div>';
+      return;
+    }
+    log.innerHTML = registros.slice().reverse().map(r => {
+      const linha1 = `#${r.id} · ${r.placa} · ${r.colaborador}`;
+      const linha2 = r.status === "aberto"
+        ? `Em aberto · saída ${formatDateTime(r.dataSaida)} · KM inicial ${r.kmInicial}`
+        : `Fechado · saída ${formatDateTime(r.dataSaida)} → retorno ${formatDateTime(r.dataRetorno)} · ${r.kmInicial} → ${r.kmFinal} km (${r.kmPercorrido} km percorridos)`;
+      return `<div class="log-row">${linha1}<br>${linha2}</div>`;
+    }).join("");
+  }
+
+  // Inicialização
+  renderHome();
+</script>
+
+</body>
+</html>
