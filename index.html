@@ -468,23 +468,34 @@
   }
 
   .record-card .rc-grid{
-    display:grid;
-    grid-template-columns: 1fr;
-    gap:8px;
-    font-size:12.5px;
+    display:flex;
+    flex-direction:column;
+    gap:7px;
+    font-size:13px;
     min-width:0;
   }
 
-  .record-card .rc-grid .rc-item{ min-width:0; overflow-wrap:anywhere; }
+  .record-card .rc-grid .rc-item{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    gap:10px;
+    min-width:0;
+  }
 
-  .record-card .rc-grid .rc-item span:first-child{
-    display:block;
+  .record-card .rc-grid .rc-label{
     color:#999;
     font-size:10.5px;
     text-transform:uppercase;
     letter-spacing:.03em;
     font-weight:600;
-    margin-bottom:1px;
+    flex-shrink:0;
+  }
+
+  .record-card .rc-grid .rc-value{
+    font-weight:600;
+    text-align:right;
+    overflow-wrap:anywhere;
   }
 
   .record-card .rc-motivo{
@@ -872,10 +883,10 @@
       const badgeLabel = r.status === "aberto" ? "Em uso" : "Concluído";
 
       const kmFinalBlock = r.status === "fechado"
-        ? `<div class="rc-item"><span>KM final</span>${r.kmFinal.toLocaleString('pt-BR')} km</div>
-           <div class="rc-item"><span>KM percorrido</span><span class="rc-km-destaque">${r.kmPercorrido.toLocaleString('pt-BR')} km</span></div>`
-        : `<div class="rc-item"><span>KM final</span>—</div>
-           <div class="rc-item"><span>KM percorrido</span>—</div>`;
+        ? `<div class="rc-item"><span class="rc-label">KM final</span><span class="rc-value">${r.kmFinal.toLocaleString('pt-BR')} km</span></div>
+           <div class="rc-item"><span class="rc-label">KM percorrido</span><span class="rc-value rc-km-destaque">${r.kmPercorrido.toLocaleString('pt-BR')} km</span></div>`
+        : `<div class="rc-item"><span class="rc-label">KM final</span><span class="rc-value">—</span></div>
+           <div class="rc-item"><span class="rc-label">KM percorrido</span><span class="rc-value">—</span></div>`;
 
       const retornoData = r.status === "fechado" ? formatDateTime(r.dataRetorno) : "—";
 
@@ -889,11 +900,11 @@
             <span class="badge ${badgeClass}">${badgeLabel}</span>
           </div>
           <div class="rc-grid">
-            <div class="rc-item"><span>Colaborador</span>${r.colaborador}</div>
-            <div class="rc-item"><span>ID registro</span>#${r.id}</div>
-            <div class="rc-item"><span>Saída</span>${formatDateTime(r.dataSaida)}</div>
-            <div class="rc-item"><span>Retorno</span>${retornoData}</div>
-            <div class="rc-item"><span>KM inicial</span>${r.kmInicial.toLocaleString('pt-BR')} km</div>
+            <div class="rc-item"><span class="rc-label">Colaborador</span><span class="rc-value">${r.colaborador}</span></div>
+            <div class="rc-item"><span class="rc-label">ID registro</span><span class="rc-value">#${r.id}</span></div>
+            <div class="rc-item"><span class="rc-label">Saída</span><span class="rc-value">${formatDateTime(r.dataSaida)}</span></div>
+            <div class="rc-item"><span class="rc-label">Retorno</span><span class="rc-value">${retornoData}</span></div>
+            <div class="rc-item"><span class="rc-label">KM inicial</span><span class="rc-value">${r.kmInicial.toLocaleString('pt-BR')} km</span></div>
             ${kmFinalBlock}
           </div>
           ${r.motivo ? `<div class="rc-motivo">Destino/motivo: ${r.motivo}</div>` : ""}
