@@ -170,8 +170,8 @@
   }
 
   .car-row .car-info{ display:flex; flex-direction:column; min-width:0; }
-  .car-row .placa{ font-weight:700; font-size:14.5px; letter-spacing:.02em; }
-  .car-row .modelo{ font-size:12.5px; color:#666; overflow-wrap:anywhere; }
+  .car-row .modelo{ font-weight:700; font-size:14.5px; letter-spacing:.01em; }
+  .car-row .placa{ font-size:12.5px; color:#666; letter-spacing:.03em; overflow-wrap:anywhere; }
 
   .badge{
     font-size:11px;
@@ -359,8 +359,8 @@
   }
 
   .km-veiculo-row .car-info{ display:flex; flex-direction:column; min-width:0; }
-  .km-veiculo-row .placa{ font-weight:700; font-size:14px; letter-spacing:.02em; }
-  .km-veiculo-row .modelo{ font-size:12px; color:#777; overflow-wrap:anywhere; }
+  .km-veiculo-row .modelo{ font-weight:700; font-size:14px; letter-spacing:.01em; }
+  .km-veiculo-row .placa{ font-size:12px; color:#777; letter-spacing:.03em; overflow-wrap:anywhere; }
 
   .km-veiculo-row .km-valor{
     font-family: var(--font-display);
@@ -453,16 +453,17 @@
   .record-card .rc-top > div:first-child{ min-width:0; }
   .record-card .rc-top .badge{ flex-shrink:0; }
 
-  .record-card .rc-placa{
+  .record-card .rc-modelo{
     font-family: var(--font-display);
     font-weight:700;
     font-size:15px;
     overflow-wrap:anywhere;
   }
 
-  .record-card .rc-modelo{
+  .record-card .rc-placa{
     font-size:12px;
     color:#777;
+    letter-spacing:.03em;
     overflow-wrap:anywhere;
   }
 
@@ -810,8 +811,8 @@
       const badgeClass = carro.status === "disponivel" ? "disponivel" : "em-uso";
       row.innerHTML = `
         <div class="car-info">
-          <span class="placa">${carro.placa}</span>
           <span class="modelo">${carro.modelo} · ${carro.kmAtual.toLocaleString('pt-BR')} km</span>
+          <span class="placa">${carro.placa}</span>
         </div>
         <span class="badge ${badgeClass}">${statusLabel}</span>
       `;
@@ -850,8 +851,8 @@
       return `
         <div class="km-veiculo-row">
           <div class="car-info">
-            <span class="placa">${carro.placa}</span>
             <span class="modelo">${carro.modelo}</span>
+            <span class="placa">${carro.placa}</span>
           </div>
           <div class="km-valor">${kmDoCarro.toLocaleString('pt-BR')}<span class="unidade">km</span></div>
         </div>
@@ -889,8 +890,8 @@
         <div class="record-card">
           <div class="rc-top">
             <div>
-              <div class="rc-placa">${r.placa}</div>
               <div class="rc-modelo">${modelo}</div>
+              <div class="rc-placa">${r.placa}</div>
             </div>
             <span class="badge ${badgeClass}">${badgeLabel}</span>
           </div>
@@ -921,7 +922,7 @@
     disponiveis.forEach(carro => {
       const opt = document.createElement("option");
       opt.value = carro.placa;
-      opt.textContent = `${carro.placa} — ${carro.modelo}`;
+      opt.textContent = `${carro.modelo} — ${carro.placa}`;
       select.appendChild(opt);
     });
     document.getElementById("form-saida").reset();
@@ -941,7 +942,7 @@
     emUso.forEach(carro => {
       const opt = document.createElement("option");
       opt.value = carro.placa;
-      opt.textContent = `${carro.placa} — ${carro.modelo}`;
+      opt.textContent = `${carro.modelo} — ${carro.placa}`;
       select.appendChild(opt);
     });
     document.getElementById("form-retorno").reset();
@@ -998,7 +999,7 @@
     registros.push(registro);
 
     showConfirm("Saída registrada", `${carro.modelo} (${placa}) liberado para ${nome}.`, [
-      ["Veículo", `${placa} — ${carro.modelo}`],
+      ["Veículo", `${carro.modelo} — ${placa}`],
       ["Colaborador", nome],
       ["Data/hora saída", formatDateTime(registro.dataSaida)],
       ["KM inicial", km.toLocaleString('pt-BR') + " km"],
@@ -1039,7 +1040,7 @@
     carro.kmAtual = kmFinal;
 
     showConfirm("Retorno registrado", `${carro.modelo} (${placa}) disponível novamente.`, [
-      ["Veículo", `${placa} — ${carro.modelo}`],
+      ["Veículo", `${carro.modelo} — ${placa}`],
       ["Colaborador", registro.colaborador],
       ["Data/hora saída", formatDateTime(registro.dataSaida)],
       ["Data/hora retorno", formatDateTime(registro.dataRetorno)],
