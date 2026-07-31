@@ -433,16 +433,18 @@
     gap:10px;
   }
 
-  .record-card{
+  /* ---------- HISTÓRICO AGRUPADO POR VEÍCULO ---------- */
+
+  .veiculo-historico-card{
     border:1px solid var(--neutral-200);
     border-radius:10px;
     padding:14px;
     display:flex;
     flex-direction:column;
-    gap:8px;
+    gap:10px;
   }
 
-  .record-card .rc-top{
+  .vh-header{
     display:flex;
     justify-content:space-between;
     align-items:flex-start;
@@ -450,67 +452,72 @@
     min-width:0;
   }
 
-  .record-card .rc-top > div:first-child{ min-width:0; }
-  .record-card .rc-top .badge{ flex-shrink:0; }
-
-  .record-card .rc-modelo{
+  .vh-header .modelo{
     font-family: var(--font-display);
     font-weight:700;
     font-size:15px;
     overflow-wrap:anywhere;
   }
 
-  .record-card .rc-placa{
+  .vh-header .placa{
     font-size:12px;
     color:#777;
     letter-spacing:.03em;
     overflow-wrap:anywhere;
   }
 
-  .record-card .rc-grid{
+  .vh-registros{
     display:flex;
     flex-direction:column;
-    gap:7px;
-    font-size:13px;
-    min-width:0;
   }
 
-  .record-card .rc-grid .rc-item{
+  .vh-registro{
+    padding:10px 0;
+    border-top:1px solid var(--neutral-200);
+    display:flex;
+    flex-direction:column;
+    gap:4px;
+  }
+
+  .vh-registro:first-child{ border-top:none; padding-top:0; }
+
+  .vhr-top{
     display:flex;
     justify-content:space-between;
-    align-items:baseline;
-    gap:10px;
-    min-width:0;
+    align-items:center;
+    gap:8px;
   }
 
-  .record-card .rc-grid .rc-label{
-    color:#999;
-    font-size:10.5px;
-    text-transform:uppercase;
-    letter-spacing:.03em;
-    font-weight:600;
-    flex-shrink:0;
+  .vhr-colaborador{
+    font-weight:700;
+    font-size:13.5px;
   }
 
-  .record-card .rc-grid .rc-value{
-    font-weight:600;
-    text-align:right;
+  .vhr-linha{
+    font-size:12px;
+    color:#555;
     overflow-wrap:anywhere;
   }
 
-  .record-card .rc-motivo{
-    font-size:12.5px;
+  .vhr-linha .lbl{
+    color:#999;
+    font-weight:600;
+  }
+
+  .vhr-motivo{
+    font-size:12px;
     color:#555;
     background: var(--neutral-200);
     border-radius:6px;
-    padding:8px 10px;
+    padding:6px 9px;
+    margin-top:2px;
   }
 
-  .record-card .rc-km-destaque{
-    font-family: var(--font-display);
-    font-weight:700;
-    font-size:14px;
-    color: var(--delp-red);
+  .vh-sem-registro{
+    font-size:12px;
+    color:#999;
+    font-style:italic;
+    padding:4px 0;
   }
 
   /* ---------- CONFIRMATION ---------- */
@@ -866,51 +873,66 @@
 
   function renderRecordList(){
     const list = document.getElementById("record-list");
-    let dados = registros.slice().reverse();
 
-    if (filtroAtual === "aberto") dados = dados.filter(r => r.status === "aberto");
-    if (filtroAtual === "fechado") dados = dados.filter(r => r.status === "fechado");
+    const blocos = frota.map(carro => {
+      let regs = registros.filter(r => r.placa === carro.placa);
+      if (filtroAtual === "aberto") regs = regs.filter(r => r.status === "aberto");
+      if (filtroAtual === "fechado") regs = regs.filter(r => r.status === "fechado");
+      regs = regs.slice().reverse();
 
-    if (dados.length === 0){
-      list.innerHTML = '<div class="empty-msg">Nenhum registro para este filtro ainda.</div>';
-      return;
-    }
+      if (regs.length === 0) return null;
 
-    list.innerHTML = dados.map(r => {
-      const carro = frota.find(c => c.placa === r.placa);
-      const modelo = carro ? carro.modelo : "—";
-      const badgeClass = r.status === "aberto" ? "em-uso" : "disponivel";
-      const badgeLabel = r.status === "aberto" ? "Em uso" : "Concluído";
+      const statusBadgeClass = carro.status === "disponivel" ? "disponivel" : "em-uso";
+      const statusLabel = carro.status === "disponivel" ? "Disponível" : "Em uso";
 
-      const kmFinalBlock = r.status === "fechado"
-        ? `<div class="rc-item"><span class="rc-label">KM final</span><span class="rc-value">${r.kmFinal.toLocaleString('pt-BR')} km</span></div>
-           <div class="rc-item"><span class="rc-label">KM percorrido</span><span class="rc-value rc-km-destaque">${r.kmPercorrido.toLocaleString('pt-BR')} km</span></div>`
-        : `<div class="rc-item"><span class="rc-label">KM final</span><span class="rc-value">—</span></div>
-           <div class="rc-item"><span class="rc-label">KM percorrido</span><span class="rc-value">—</span></div>`;
+      const linhas = regs.map(r => {
+        const regStatusClass = r.status === "aberto" ? "em-uso" : "disponivel";
+        const regStatusLabel = r.status === "aberto" ? "Em uso" : "Concluído";
+        const retornoTxt = r.status === "fechado" ? formatDateTime(r.dataRetorno) : "—";
+        const kmFinalTxt = r.status === "fechado" ? r.kmFinal.toLocaleString('pt-BR') + " km" : "—";
+        const kmPercorridoTxt = r.status === "fechado" ? r.kmPercorrido.toLocaleString('pt-BR') + " km" : "—";
 
-      const retornoData = r.status === "fechado" ? formatDateTime(r.dataRetorno) : "—";
+        return `
+          <div class="vh-registro">
+            <div class="vhr-top">
+              <span class="vhr-colaborador">${r.colaborador}</span>
+              <span class="badge ${regStatusClass}">${regStatusLabel}</span>
+            </div>
+            <div class="vhr-linha">
+              <span class="lbl">Saída:</span> ${formatDateTime(r.dataSaida)}
+              &nbsp;·&nbsp;
+              <span class="lbl">Retorno:</span> ${retornoTxt}
+            </div>
+            <div class="vhr-linha">
+              <span class="lbl">KM inicial:</span> ${r.kmInicial.toLocaleString('pt-BR')} km
+              &nbsp;·&nbsp;
+              <span class="lbl">KM final:</span> ${kmFinalTxt}
+              &nbsp;·&nbsp;
+              <span class="lbl">Percorrido:</span> ${kmPercorridoTxt}
+            </div>
+            ${r.motivo ? `<div class="vhr-motivo">Destino/motivo: ${r.motivo}</div>` : ""}
+          </div>
+        `;
+      }).join("");
 
       return `
-        <div class="record-card">
-          <div class="rc-top">
+        <div class="veiculo-historico-card">
+          <div class="vh-header">
             <div>
-              <div class="rc-modelo">${modelo}</div>
-              <div class="rc-placa">${r.placa}</div>
+              <div class="modelo">${carro.modelo}</div>
+              <div class="placa">${carro.placa}</div>
             </div>
-            <span class="badge ${badgeClass}">${badgeLabel}</span>
+            <span class="badge ${statusBadgeClass}">${statusLabel}</span>
           </div>
-          <div class="rc-grid">
-            <div class="rc-item"><span class="rc-label">Colaborador</span><span class="rc-value">${r.colaborador}</span></div>
-            <div class="rc-item"><span class="rc-label">ID registro</span><span class="rc-value">#${r.id}</span></div>
-            <div class="rc-item"><span class="rc-label">Saída</span><span class="rc-value">${formatDateTime(r.dataSaida)}</span></div>
-            <div class="rc-item"><span class="rc-label">Retorno</span><span class="rc-value">${retornoData}</span></div>
-            <div class="rc-item"><span class="rc-label">KM inicial</span><span class="rc-value">${r.kmInicial.toLocaleString('pt-BR')} km</span></div>
-            ${kmFinalBlock}
-          </div>
-          ${r.motivo ? `<div class="rc-motivo">Destino/motivo: ${r.motivo}</div>` : ""}
+          <div class="vh-registros">${linhas}</div>
         </div>
       `;
-    }).join("");
+    }).filter(Boolean);
+
+    list.innerHTML = blocos.length > 0
+      ? blocos.join("")
+      : '<div class="empty-msg">Nenhum registro para este filtro ainda.</div>';
+  }
   }
 
   function renderSaidaSelect(){
