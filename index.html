@@ -671,7 +671,7 @@
       <form id="form-saida" onsubmit="return submitSaida(event)">
         <div class="field">
           <label for="saida-carro">Veículo</label>
-          <select id="saida-carro" required>
+          <select id="saida-carro" required onchange="preencherKmInicialSugerido()">
             <option value="" disabled selected>Selecione um carro disponível</option>
           </select>
         </div>
@@ -683,7 +683,7 @@
 
         <div class="field">
           <label for="saida-km">KM inicial (odômetro)</label>
-          <span class="hint">Confira o painel do carro antes de sair</span>
+          <span class="hint">Preenchido com o último KM registrado do carro — confira e ajuste se precisar</span>
           <input type="number" id="saida-km" inputmode="numeric" placeholder="Ex: 45210" min="0" required>
         </div>
 
@@ -1007,6 +1007,14 @@
     });
     document.getElementById("form-saida").reset();
     document.getElementById("saida-error").classList.remove("show");
+  }
+
+  function preencherKmInicialSugerido(){
+    const placa = document.getElementById("saida-carro").value;
+    const carro = frota.find(c => c.placa === placa);
+    if (carro){
+      document.getElementById("saida-km").value = carro.kmAtual;
+    }
   }
 
   function renderRetornoSelect(){
