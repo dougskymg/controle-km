@@ -296,6 +296,148 @@
     border-radius:8px;
   }
 
+  /* ---------- ACOMPANHAMENTO ---------- */
+
+  .nav-link{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    width:100%;
+    background:none;
+    border:1.5px solid var(--neutral-200);
+    border-radius:8px;
+    padding:13px;
+    font-family: var(--font-display);
+    font-weight:600;
+    font-size:14px;
+    color:#444;
+    cursor:pointer;
+  }
+
+  .nav-link:active{ background: var(--neutral-200); }
+
+  .summary-grid{
+    display:grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap:8px;
+  }
+
+  .summary-card{
+    background: var(--neutral-200);
+    border-radius:8px;
+    padding:12px 10px;
+    text-align:center;
+  }
+
+  .summary-card .num{
+    font-family: var(--font-display);
+    font-weight:700;
+    font-size:19px;
+    color: var(--neutral-900);
+  }
+
+  .summary-card .num.red{ color: var(--delp-red); }
+  .summary-card .num.green{ color: var(--ok); }
+
+  .summary-card .lbl{
+    font-size:10.5px;
+    color:#666;
+    font-weight:600;
+    text-transform:uppercase;
+    letter-spacing:.03em;
+    margin-top:2px;
+  }
+
+  .filter-row{
+    display:flex;
+    gap:6px;
+  }
+
+  .filter-chip{
+    flex:1;
+    text-align:center;
+    padding:9px 6px;
+    border-radius:20px;
+    border:1.5px solid var(--neutral-200);
+    background: var(--neutral-100);
+    font-size:12.5px;
+    font-weight:600;
+    color:#555;
+    cursor:pointer;
+  }
+
+  .filter-chip.active{
+    background: var(--neutral-900);
+    border-color: var(--neutral-900);
+    color: var(--neutral-100);
+  }
+
+  .record-list{
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+  }
+
+  .record-card{
+    border:1px solid var(--neutral-200);
+    border-radius:10px;
+    padding:14px;
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+  }
+
+  .record-card .rc-top{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    gap:8px;
+  }
+
+  .record-card .rc-placa{
+    font-family: var(--font-display);
+    font-weight:700;
+    font-size:15px;
+  }
+
+  .record-card .rc-modelo{
+    font-size:12px;
+    color:#777;
+  }
+
+  .record-card .rc-grid{
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap:6px 14px;
+    font-size:12.5px;
+  }
+
+  .record-card .rc-grid .rc-item span:first-child{
+    display:block;
+    color:#999;
+    font-size:10.5px;
+    text-transform:uppercase;
+    letter-spacing:.03em;
+    font-weight:600;
+    margin-bottom:1px;
+  }
+
+  .record-card .rc-motivo{
+    font-size:12.5px;
+    color:#555;
+    background: var(--neutral-200);
+    border-radius:6px;
+    padding:8px 10px;
+  }
+
+  .record-card .rc-km-destaque{
+    font-family: var(--font-display);
+    font-weight:700;
+    font-size:14px;
+    color: var(--delp-red);
+  }
+
   /* ---------- CONFIRMATION ---------- */
 
   .confirm-box{
@@ -356,40 +498,6 @@
     width:100%;
   }
 
-  /* ---------- DEV PANEL (temporário) ---------- */
-
-  .dev-panel{
-    margin-top:auto;
-    border-top:1px dashed var(--neutral-400);
-    padding-top:14px;
-  }
-
-  .dev-panel summary{
-    font-size:12px;
-    font-weight:600;
-    color:#888;
-    cursor:pointer;
-    list-style:none;
-  }
-
-  .dev-panel summary::-webkit-details-marker{ display:none; }
-
-  .dev-panel summary::before{ content:"⚙ "; }
-
-  .log-row{
-    font-size:11.5px;
-    color:#666;
-    padding:8px 0;
-    border-bottom:1px solid var(--neutral-200);
-    font-family: 'Inter', monospace;
-  }
-
-  .dev-note{
-    font-size:11px;
-    color:#999;
-    margin-top:8px;
-    line-height:1.5;
-  }
 </style>
 </head>
 <body>
@@ -427,15 +535,9 @@
         <div id="frota-list"></div>
       </div>
 
-      <details class="dev-panel">
-        <summary>Painel de teste (visível só nesta fase)</summary>
-        <div id="dev-log"></div>
-        <div class="dev-note">
-          Este bloco existe só para conferirmos o comportamento antes de
-          integrar com o Google Sheets. Os dados aqui ficam em memória —
-          somem se a página for recarregada.
-        </div>
-      </details>
+      <button class="nav-link" onclick="goTo('historico')">
+        📊 Acompanhamento e histórico
+      </button>
     </section>
 
     <!-- ===================== SAÍDA ===================== -->
@@ -511,6 +613,24 @@
       </form>
     </section>
 
+    <!-- ===================== ACOMPANHAMENTO ===================== -->
+    <section id="view-historico" class="view">
+      <button class="back-link" onclick="goTo('home')">← Voltar</button>
+      <div>
+        <div class="view-title">Acompanhamento e histórico</div>
+      </div>
+
+      <div class="summary-grid" id="summary-grid"></div>
+
+      <div class="filter-row">
+        <div class="filter-chip active" data-filter="todos" onclick="setFiltro('todos')">Todos</div>
+        <div class="filter-chip" data-filter="aberto" onclick="setFiltro('aberto')">Em uso</div>
+        <div class="filter-chip" data-filter="fechado" onclick="setFiltro('fechado')">Concluídos</div>
+      </div>
+
+      <div class="record-list" id="record-list"></div>
+    </section>
+
     <!-- ===================== CONFIRMAÇÃO ===================== -->
     <section id="view-confirm" class="view">
       <div class="confirm-box">
@@ -550,12 +670,23 @@
     });
   }
 
+  let filtroAtual = "todos";
+
   function goTo(viewName){
     document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
     document.getElementById("view-" + viewName).classList.add("active");
     if (viewName === "home") renderHome();
     if (viewName === "saida") renderSaidaSelect();
     if (viewName === "retorno") renderRetornoSelect();
+    if (viewName === "historico") renderHistorico();
+  }
+
+  function setFiltro(filtro){
+    filtroAtual = filtro;
+    document.querySelectorAll(".filter-chip").forEach(chip => {
+      chip.classList.toggle("active", chip.dataset.filter === filtro);
+    });
+    renderRecordList();
   }
 
   function renderHome(){
@@ -575,7 +706,81 @@
       `;
       list.appendChild(row);
     });
-    renderDevLog();
+  }
+
+  function renderHistorico(){
+    renderSummary();
+    renderRecordList();
+  }
+
+  function renderSummary(){
+    const abertos = registros.filter(r => r.status === "aberto");
+    const fechados = registros.filter(r => r.status === "fechado");
+    const kmTotal = fechados.reduce((soma, r) => soma + r.kmPercorrido, 0);
+
+    document.getElementById("summary-grid").innerHTML = `
+      <div class="summary-card">
+        <div class="num red">${abertos.length}</div>
+        <div class="lbl">Em uso</div>
+      </div>
+      <div class="summary-card">
+        <div class="num green">${fechados.length}</div>
+        <div class="lbl">Concluídos</div>
+      </div>
+      <div class="summary-card">
+        <div class="num">${kmTotal.toLocaleString('pt-BR')}</div>
+        <div class="lbl">KM total</div>
+      </div>
+    `;
+  }
+
+  function renderRecordList(){
+    const list = document.getElementById("record-list");
+    let dados = registros.slice().reverse();
+
+    if (filtroAtual === "aberto") dados = dados.filter(r => r.status === "aberto");
+    if (filtroAtual === "fechado") dados = dados.filter(r => r.status === "fechado");
+
+    if (dados.length === 0){
+      list.innerHTML = '<div class="empty-msg">Nenhum registro para este filtro ainda.</div>';
+      return;
+    }
+
+    list.innerHTML = dados.map(r => {
+      const carro = frota.find(c => c.placa === r.placa);
+      const modelo = carro ? carro.modelo : "—";
+      const badgeClass = r.status === "aberto" ? "em-uso" : "disponivel";
+      const badgeLabel = r.status === "aberto" ? "Em uso" : "Concluído";
+
+      const kmFinalBlock = r.status === "fechado"
+        ? `<div class="rc-item"><span>KM final</span>${r.kmFinal.toLocaleString('pt-BR')} km</div>
+           <div class="rc-item"><span>KM percorrido</span><span class="rc-km-destaque">${r.kmPercorrido.toLocaleString('pt-BR')} km</span></div>`
+        : `<div class="rc-item"><span>KM final</span>—</div>
+           <div class="rc-item"><span>KM percorrido</span>—</div>`;
+
+      const retornoData = r.status === "fechado" ? formatDateTime(r.dataRetorno) : "—";
+
+      return `
+        <div class="record-card">
+          <div class="rc-top">
+            <div>
+              <div class="rc-placa">${r.placa}</div>
+              <div class="rc-modelo">${modelo}</div>
+            </div>
+            <span class="badge ${badgeClass}">${badgeLabel}</span>
+          </div>
+          <div class="rc-grid">
+            <div class="rc-item"><span>Colaborador</span>${r.colaborador}</div>
+            <div class="rc-item"><span>ID registro</span>#${r.id}</div>
+            <div class="rc-item"><span>Saída</span>${formatDateTime(r.dataSaida)}</div>
+            <div class="rc-item"><span>Retorno</span>${retornoData}</div>
+            <div class="rc-item"><span>KM inicial</span>${r.kmInicial.toLocaleString('pt-BR')} km</div>
+            ${kmFinalBlock}
+          </div>
+          ${r.motivo ? `<div class="rc-motivo">Destino/motivo: ${r.motivo}</div>` : ""}
+        </div>
+      `;
+    }).join("");
   }
 
   function renderSaidaSelect(){
@@ -730,21 +935,6 @@
     ).join("");
     document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
     document.getElementById("view-confirm").classList.add("active");
-  }
-
-  function renderDevLog(){
-    const log = document.getElementById("dev-log");
-    if (registros.length === 0){
-      log.innerHTML = '<div class="log-row">Nenhum registro ainda nesta sessão.</div>';
-      return;
-    }
-    log.innerHTML = registros.slice().reverse().map(r => {
-      const linha1 = `#${r.id} · ${r.placa} · ${r.colaborador}`;
-      const linha2 = r.status === "aberto"
-        ? `Em aberto · saída ${formatDateTime(r.dataSaida)} · KM inicial ${r.kmInicial}`
-        : `Fechado · saída ${formatDateTime(r.dataSaida)} → retorno ${formatDateTime(r.dataRetorno)} · ${r.kmInicial} → ${r.kmFinal} km (${r.kmPercorrido} km percorridos)`;
-      return `<div class="log-row">${linha1}<br>${linha2}</div>`;
-    }).join("");
   }
 
   // Inicialização
