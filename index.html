@@ -362,6 +362,13 @@
   .km-veiculo-row .modelo{ font-weight:700; font-size:14px; letter-spacing:.01em; }
   .km-veiculo-row .placa{ font-size:12px; color:#777; letter-spacing:.03em; overflow-wrap:anywhere; }
 
+  .km-veiculo-row .km-valor-group{
+    display:flex;
+    flex-direction:column;
+    align-items:flex-end;
+    gap:1px;
+  }
+
   .km-veiculo-row .km-valor{
     font-family: var(--font-display);
     font-weight:700;
@@ -375,6 +382,30 @@
     font-weight:600;
     color:#999;
     margin-left:3px;
+  }
+
+  .km-veiculo-row .km-corridas{
+    font-size:10.5px;
+    font-weight:600;
+    color:#888;
+    white-space:nowrap;
+  }
+
+  .mes-filter{
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+
+  .mes-filter label{
+    font-size:13px;
+    font-weight:600;
+    color:#333;
+    white-space:nowrap;
+  }
+
+  .mes-filter select{
+    flex:1;
   }
 
   .summary-card{
@@ -709,6 +740,13 @@
         <div class="view-title">Acompanhamento e histórico</div>
       </div>
 
+      <div class="mes-filter">
+        <label for="mes-select">Mês</label>
+        <select id="mes-select" onchange="setMes(this.value)">
+          <option value="todos">Todos os meses</option>
+        </select>
+      </div>
+
       <div class="summary-grid" id="summary-grid"></div>
 
       <div class="km-por-veiculo">
@@ -782,6 +820,30 @@
   }
 
   let filtroAtual = "todos";
+  let filtroMes = "todos";
+
+  const MESES_PT = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho",
+                     "Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+
+  function getMesKey(date){
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+  }
+
+  function getMesLabel(key){
+    const [ano, mes] = key.split("-");
+    return `${MESES_PT[parseInt(mes, 10) - 1]} ${ano}`;
+  }
+
+  function registroNoMesFiltrado(r){
+    return filtroMes === "todos" || getMesKey(r.dataSaida) === filtroMes;
+  }
+
+  function setMes(valor){
+    filtroMes = valor;
+    renderSummary();
+    renderKmPorVeiculo();
+    renderRecordList();
+  }
 
   function goTo(viewName){
     document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
@@ -820,15 +882,35 @@
     });
   }
 
+  function renderMesSelect(){
+    const select = document.getElementById("mes-select");
+    const mesesSet = new Set(registros.map(r => getMesKey(r.dataSaida)));
+    const meses = Array.from(mesesSet).sort().reverse();
+
+    const valorAnterior = filtroMes;
+
+    select.innerHTML = '<option value="todos">Todos os meses</option>' +
+      meses.map(m => `<option value="${m}">${getMesLabel(m)}</option>`).join("");
+
+    if (valorAnterior !== "todos" && meses.includes(valorAnterior)){
+      select.value = valorAnterior;
+    } else {
+      select.value = "todos";
+      filtroMes = "todos";
+    }
+  }
+
   function renderHistorico(){
+    renderMesSelect();
     renderSummary();
     renderKmPorVeiculo();
     renderRecordList();
   }
 
   function renderSummary(){
-    const abertos = registros.filter(r => r.status === "aberto");
-    const fechados = registros.filter(r => r.status === "fechado");
+    const regsDoMes = registros.filter(registroNoMesFiltrado);
+    const abertos = regsDoMes.filter(r => r.status === "aberto");
+    const fechados = regsDoMes.filter(r => r.status === "fechado");
 
     document.getElementById("summary-grid").innerHTML = `
       <div class="summary-card">
@@ -845,16 +927,22 @@
   function renderKmPorVeiculo(){
     const list = document.getElementById("km-veiculo-list");
     list.innerHTML = frota.map(carro => {
-      const kmDoCarro = registros
-        .filter(r => r.placa === carro.placa && r.status === "fechado")
-        .reduce((soma, r) => soma + r.kmPercorrido, 0);
+      const regsCarro = registros.filter(r =>
+        r.placa === carro.placa && r.status === "fechado" && registroNoMesFiltrado(r)
+      );
+      const kmDoCarro = regsCarro.reduce((soma, r) => soma + r.kmPercorrido, 0);
+      const corridas = regsCarro.length;
+      const corridasLabel = corridas === 1 ? "corrida" : "corridas";
       return `
         <div class="km-veiculo-row">
           <div class="car-info">
             <span class="modelo">${carro.modelo}</span>
             <span class="placa">${carro.placa}</span>
           </div>
-          <div class="km-valor">${kmDoCarro.toLocaleString('pt-BR')}<span class="unidade">km</span></div>
+          <div class="km-valor-group">
+            <div class="km-valor">${kmDoCarro.toLocaleString('pt-BR')}<span class="unidade">km</span></div>
+            <div class="km-corridas">${corridas} ${corridasLabel}</div>
+          </div>
         </div>
       `;
     }).join("");
@@ -863,7 +951,7 @@
   function renderRecordList(){
     const body = document.getElementById("record-table-body");
 
-    let dados = registros.slice().reverse();
+    let dados = registros.slice().reverse().filter(registroNoMesFiltrado);
     if (filtroAtual === "aberto") dados = dados.filter(r => r.status === "aberto");
     if (filtroAtual === "fechado") dados = dados.filter(r => r.status === "fechado");
 
