@@ -427,97 +427,72 @@
     color: var(--neutral-100);
   }
 
-  .record-list{
-    display:flex;
-    flex-direction:column;
-    gap:10px;
-  }
-
-  /* ---------- HISTÓRICO AGRUPADO POR VEÍCULO ---------- */
-
-  .veiculo-historico-card{
+  .table-wrapper{
+    width:100%;
+    overflow-x:auto;
+    -webkit-overflow-scrolling:touch;
     border:1px solid var(--neutral-200);
     border-radius:10px;
-    padding:14px;
-    display:flex;
-    flex-direction:column;
-    gap:10px;
   }
 
-  .vh-header{
-    display:flex;
-    justify-content:space-between;
-    align-items:flex-start;
-    gap:8px;
-    min-width:0;
+  .record-table{
+    border-collapse:collapse;
+    width:100%;
+    min-width:760px;
+    font-size:12.5px;
   }
 
-  .vh-header .modelo{
+  .record-table thead th{
+    background: var(--neutral-900);
+    color: var(--neutral-100);
     font-family: var(--font-display);
-    font-weight:700;
-    font-size:15px;
-    overflow-wrap:anywhere;
-  }
-
-  .vh-header .placa{
-    font-size:12px;
-    color:#777;
-    letter-spacing:.03em;
-    overflow-wrap:anywhere;
-  }
-
-  .vh-registros{
-    display:flex;
-    flex-direction:column;
-  }
-
-  .vh-registro{
-    padding:10px 0;
-    border-top:1px solid var(--neutral-200);
-    display:flex;
-    flex-direction:column;
-    gap:4px;
-  }
-
-  .vh-registro:first-child{ border-top:none; padding-top:0; }
-
-  .vhr-top{
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    gap:8px;
-  }
-
-  .vhr-colaborador{
-    font-weight:700;
-    font-size:13.5px;
-  }
-
-  .vhr-linha{
-    font-size:12px;
-    color:#555;
-    overflow-wrap:anywhere;
-  }
-
-  .vhr-linha .lbl{
-    color:#999;
     font-weight:600;
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:.04em;
+    text-align:left;
+    padding:10px 12px;
+    white-space:nowrap;
+    position:sticky;
+    top:0;
   }
 
-  .vhr-motivo{
-    font-size:12px;
-    color:#555;
+  .record-table tbody td{
+    padding:10px 12px;
+    border-top:1px solid var(--neutral-200);
+    white-space:nowrap;
+  }
+
+  .record-table tbody tr:nth-child(even){
     background: var(--neutral-200);
-    border-radius:6px;
-    padding:6px 9px;
-    margin-top:2px;
   }
 
-  .vh-sem-registro{
-    font-size:12px;
+  .record-table .rt-modelo{
+    font-weight:700;
+  }
+
+  .record-table .rt-placa{
+    display:block;
+    color:#888;
+    font-size:11px;
+    font-weight:400;
+  }
+
+  .record-table .rt-percorrido{
+    font-weight:700;
+    color: var(--delp-red);
+  }
+
+  .record-table .rt-motivo{
+    white-space:normal;
+    min-width:140px;
+  }
+
+  .record-table-empty td{
+    text-align:center;
     color:#999;
     font-style:italic;
-    padding:4px 0;
+    padding:18px 12px;
   }
 
   /* ---------- CONFIRMATION ---------- */
@@ -602,11 +577,9 @@
       max-width: 420px;
     }
 
-    .app.app--wide #record-list{
-      display:grid;
-      grid-template-columns: repeat(2, 1fr);
-      align-items:start;
-      gap:12px;
+    .app.app--wide .record-table{
+      min-width:100%;
+      font-size:13.5px;
     }
 
     .app.app--wide .filter-row{
@@ -749,7 +722,23 @@
         <div class="filter-chip" data-filter="fechado" onclick="setFiltro('fechado')">Concluídos</div>
       </div>
 
-      <div class="record-list" id="record-list"></div>
+      <div class="table-wrapper">
+        <table class="record-table" id="record-table">
+          <thead>
+            <tr>
+              <th>Veículo</th>
+              <th>Condutor</th>
+              <th>Saída</th>
+              <th>KM inicial</th>
+              <th>Retorno</th>
+              <th>KM final</th>
+              <th>Percorrido</th>
+              <th>Destino/motivo</th>
+            </tr>
+          </thead>
+          <tbody id="record-table-body"></tbody>
+        </table>
+      </div>
     </section>
 
     <!-- ===================== CONFIRMAÇÃO ===================== -->
@@ -872,66 +861,44 @@
   }
 
   function renderRecordList(){
-    const list = document.getElementById("record-list");
+    const body = document.getElementById("record-table-body");
 
-    const blocos = frota.map(carro => {
-      let regs = registros.filter(r => r.placa === carro.placa);
-      if (filtroAtual === "aberto") regs = regs.filter(r => r.status === "aberto");
-      if (filtroAtual === "fechado") regs = regs.filter(r => r.status === "fechado");
-      regs = regs.slice().reverse();
+    let dados = registros.slice().reverse();
+    if (filtroAtual === "aberto") dados = dados.filter(r => r.status === "aberto");
+    if (filtroAtual === "fechado") dados = dados.filter(r => r.status === "fechado");
 
-      if (regs.length === 0) return null;
+    if (dados.length === 0){
+      body.innerHTML = `
+        <tr class="record-table-empty">
+          <td colspan="8">Nenhum registro para este filtro ainda.</td>
+        </tr>
+      `;
+      return;
+    }
 
-      const statusBadgeClass = carro.status === "disponivel" ? "disponivel" : "em-uso";
-      const statusLabel = carro.status === "disponivel" ? "Disponível" : "Em uso";
-
-      const linhas = regs.map(r => {
-        const regStatusClass = r.status === "aberto" ? "em-uso" : "disponivel";
-        const regStatusLabel = r.status === "aberto" ? "Em uso" : "Concluído";
-        const retornoTxt = r.status === "fechado" ? formatDateTime(r.dataRetorno) : "—";
-        const kmFinalTxt = r.status === "fechado" ? r.kmFinal.toLocaleString('pt-BR') + " km" : "—";
-        const kmPercorridoTxt = r.status === "fechado" ? r.kmPercorrido.toLocaleString('pt-BR') + " km" : "—";
-
-        return `
-          <div class="vh-registro">
-            <div class="vhr-top">
-              <span class="vhr-colaborador">${r.colaborador}</span>
-              <span class="badge ${regStatusClass}">${regStatusLabel}</span>
-            </div>
-            <div class="vhr-linha">
-              <span class="lbl">Saída:</span> ${formatDateTime(r.dataSaida)}
-              &nbsp;·&nbsp;
-              <span class="lbl">Retorno:</span> ${retornoTxt}
-            </div>
-            <div class="vhr-linha">
-              <span class="lbl">KM inicial:</span> ${r.kmInicial.toLocaleString('pt-BR')} km
-              &nbsp;·&nbsp;
-              <span class="lbl">KM final:</span> ${kmFinalTxt}
-              &nbsp;·&nbsp;
-              <span class="lbl">Percorrido:</span> ${kmPercorridoTxt}
-            </div>
-            ${r.motivo ? `<div class="vhr-motivo">Destino/motivo: ${r.motivo}</div>` : ""}
-          </div>
-        `;
-      }).join("");
+    body.innerHTML = dados.map(r => {
+      const carro = frota.find(c => c.placa === r.placa);
+      const modelo = carro ? carro.modelo : "—";
+      const retornoTxt = r.status === "fechado" ? formatDateTime(r.dataRetorno) : "—";
+      const kmFinalTxt = r.status === "fechado" ? r.kmFinal.toLocaleString('pt-BR') + " km" : "—";
+      const kmPercorridoTxt = r.status === "fechado" ? r.kmPercorrido.toLocaleString('pt-BR') + " km" : "—";
 
       return `
-        <div class="veiculo-historico-card">
-          <div class="vh-header">
-            <div>
-              <div class="modelo">${carro.modelo}</div>
-              <div class="placa">${carro.placa}</div>
-            </div>
-            <span class="badge ${statusBadgeClass}">${statusLabel}</span>
-          </div>
-          <div class="vh-registros">${linhas}</div>
-        </div>
+        <tr>
+          <td>
+            <span class="rt-modelo">${modelo}</span>
+            <span class="rt-placa">${r.placa}</span>
+          </td>
+          <td>${r.colaborador}</td>
+          <td>${formatDateTime(r.dataSaida)}</td>
+          <td>${r.kmInicial.toLocaleString('pt-BR')} km</td>
+          <td>${retornoTxt}</td>
+          <td>${kmFinalTxt}</td>
+          <td class="rt-percorrido">${kmPercorridoTxt}</td>
+          <td class="rt-motivo">${r.motivo || "—"}</td>
+        </tr>
       `;
-    }).filter(Boolean);
-
-    list.innerHTML = blocos.length > 0
-      ? blocos.join("")
-      : '<div class="empty-msg">Nenhum registro para este filtro ainda.</div>';
+    }).join("");
   }
 
   function renderSaidaSelect(){
