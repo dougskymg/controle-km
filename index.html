@@ -80,6 +80,30 @@
     background: var(--delp-red);
   }
 
+  .global-error-banner{
+    display:none;
+    background: #FDECEC;
+    border-bottom: 2px solid var(--delp-red);
+    color: #7A0000;
+    font-size:13px;
+    font-weight:600;
+    padding:14px 20px;
+    line-height:1.5;
+    white-space:pre-line;
+  }
+
+  .global-error-banner.show{ display:block; }
+
+  .global-error-banner .banner-fechar{
+    display:inline-block;
+    margin-top:8px;
+    font-size:12px;
+    font-weight:700;
+    text-decoration:underline;
+    cursor:pointer;
+    color: var(--delp-red);
+  }
+
   main{
     flex:1;
     padding:20px;
@@ -240,7 +264,14 @@
     font-weight:400;
   }
 
-  select, input[type="text"], input[type="number"], textarea{
+  p.hint{
+    font-size:13px;
+    color:#666;
+    font-weight:400;
+    line-height:1.5;
+  }
+
+  select, input[type="text"], input[type="number"], input[type="password"], textarea{
     font-family: var(--font-body);
     font-size:16px;
     padding:13px 14px;
@@ -629,6 +660,8 @@
     <div class="accent-bar"></div>
   </header>
 
+  <div id="global-error-banner" class="global-error-banner"></div>
+
   <main>
 
     <!-- ===================== HOME ===================== -->
@@ -655,9 +688,32 @@
         <div id="frota-list"></div>
       </div>
 
-      <button class="nav-link" onclick="goTo('historico')">
+      <button class="nav-link" onclick="acessarHistorico()">
         📊 Acompanhamento e histórico
       </button>
+    </section>
+
+    <!-- ===================== PIN — ACESSO RESTRITO ===================== -->
+    <section id="view-pin" class="view">
+      <button class="back-link" onclick="goTo('home')">← Voltar</button>
+      <div>
+        <div class="view-title">Área restrita</div>
+      </div>
+      <p class="hint" style="margin-top:-8px;">
+        O Acompanhamento e histórico é de uso exclusivo do time de Facilities.
+        Informe o PIN de acesso.
+      </p>
+
+      <form id="form-pin" onsubmit="return submitPin(event)">
+        <div class="field">
+          <label for="pin-input">PIN de acesso</label>
+          <input type="password" id="pin-input" inputmode="numeric" placeholder="••••" autocomplete="off" required>
+        </div>
+
+        <div class="error-msg" id="pin-error"></div>
+
+        <button type="submit" class="submit-btn">Entrar</button>
+      </form>
     </section>
 
     <!-- ===================== SAÍDA ===================== -->
@@ -800,16 +856,118 @@
   // Apps Script. Nada aqui é salvo entre recarregamentos de página.
   // ============================================================
 
-  let frota = [
-    { placa: "TZR2E16", modelo: "HB20",        status: "disponivel", kmAtual: 0 },
-    { placa: "TZF0D29", modelo: "HB20S",       status: "disponivel", kmAtual: 0 },
-    { placa: "PUT7D14", modelo: "S10",         status: "disponivel", kmAtual: 0 },
-    { placa: "RNU1J73", modelo: "OROCH",       status: "disponivel", kmAtual: 0 },
-    { placa: "PZX2939", modelo: "HONDA CITY",  status: "disponivel", kmAtual: 0 },
-  ];
+  // ============================================================
+  // CONFIGURAÇÃO — cole aqui a URL do seu Apps Script publicado
+  // (Implantar → Gerenciar implantações → copiar a URL que termina em /exec)
+  // ============================================================
+  const API_URL = "COLE_AQUI_A_URL_DO_APPS_SCRIPT_TERMINADA_EM_/exec";
 
-  let registros = []; // histórico de uso (saída + retorno)
-  let idCounter = 1;
+  let frota = [];
+  let registros = [];
+
+  function normalizarRegistro(r){
+    if (!r) return r;
+    return Object.assign({}, r, {
+      dataSaida: r.dataSaida ? new Date(r.dataSaida) : null,
+      dataRetorno: r.dataRetorno ? new Date(r.dataRetorno) : null
+    });
+  }
+
+  function normalizarRegistros(lista){
+    return (lista || []).map(normalizarRegistro);
+  }
+
+  /**
+   * Helper genérico: chama uma função do Apps Script com timeout visível
+   * e tratamento de erro, sem depender de alert() (bloqueado no iframe
+   * sandbox do Apps Script em alguns navegadores).
+   */
+  function chamarServidor(nomeFuncao, params, onSucesso, onErro){
+    if (!API_URL || API_URL.indexOf("COLE_AQUI") !== -1){
+      mostrarErroCarregamento("A URL da API não foi configurada. Abra o código e preencha a constante API_URL com a URL do Apps Script (terminando em /exec).");
+      if (onErro) onErro();
+      return;
+    }
+
+    let respondeu = false;
+    const timeoutId = setTimeout(function(){
+      if (!respondeu){
+        mostrarErroCarregamento("A busca de dados na planilha demorou demais e não respondeu. Verifique sua conexão e tente novamente.");
+        if (onErro) onErro();
+      }
+    }, 12000);
+
+    const query = new URLSearchParams();
+    query.set("action", nomeFuncao);
+    if (params){
+      Object.keys(params).forEach(function(chave){
+        if (params[chave] !== undefined && params[chave] !== null){
+          query.set(chave, params[chave]);
+        }
+      });
+    }
+
+    fetch(API_URL + "?" + query.toString())
+      .then(function(resp){ return resp.json(); })
+      .then(function(resultado){
+        respondeu = true;
+        clearTimeout(timeoutId);
+        if (resultado && resultado.ok){
+          onSucesso(resultado.dados);
+        } else {
+          console.error("Erro do servidor (" + nomeFuncao + "):", resultado && resultado.erro);
+          mostrarErroCarregamento((resultado && resultado.erro) ? resultado.erro : "Erro desconhecido ao carregar dados da planilha.");
+          if (onErro) onErro(resultado && resultado.erro);
+        }
+      })
+      .catch(function(erro){
+        respondeu = true;
+        clearTimeout(timeoutId);
+        console.error("Erro de rede (" + nomeFuncao + "):", erro);
+        mostrarErroCarregamento("Não foi possível conectar ao servidor. Verifique sua conexão e tente novamente.");
+        if (onErro) onErro(String(erro));
+      });
+  }
+
+  /** Carregamento leve — só a frota. Usado em Home, Saída e Retorno. */
+  function carregarFrota(callback){
+    chamarServidor("getFrota", null, function(dadosFrota){
+      frota = dadosFrota;
+      if (callback) callback();
+    });
+  }
+
+  /** Carregamento completo — frota + histórico inteiro. Só para Acompanhamento. */
+  function carregarHistorico(callback){
+    chamarServidor("getHistoricoCompleto", null, function(dados){
+      frota = dados.frota;
+      registros = normalizarRegistros(dados.registros);
+      if (callback) callback();
+    });
+  }
+
+  function mostrarErroCarregamento(mensagem){
+    console.error("Erro de carregamento:", mensagem);
+
+    const banner = document.getElementById("global-error-banner");
+    banner.innerHTML = "⚠ " + mensagem +
+      '<br><span class="banner-fechar" onclick="fecharBannerErro()">Fechar aviso</span>';
+    banner.classList.add("show");
+
+    ["saida-carro", "retorno-carro"].forEach(function(id){
+      const select = document.getElementById(id);
+      if (select && select.disabled){
+        select.disabled = false;
+        select.innerHTML = '<option value="" disabled selected>Erro ao carregar — toque em Voltar e tente novamente</option>';
+      }
+    });
+  }
+
+  function fecharBannerErro(){
+    const banner = document.getElementById("global-error-banner");
+    banner.classList.remove("show");
+    banner.innerHTML = "";
+  }
 
   function formatDateTime(date){
     if (!date) return "—";
@@ -845,14 +1003,65 @@
     renderRecordList();
   }
 
+  let pinVerificado = false;
+
+  function acessarHistorico(){
+    if (pinVerificado){
+      goTo("historico");
+    } else {
+      goTo("pin");
+    }
+  }
+
+  function submitPin(e){
+    e.preventDefault();
+    const pin = document.getElementById("pin-input").value;
+    const errorEl = document.getElementById("pin-error");
+    errorEl.classList.remove("show");
+
+    chamarServidor("verificarPin", { pin: pin }, function(resultado){
+      if (resultado && resultado.valido){
+        pinVerificado = true;
+        document.getElementById("form-pin").reset();
+        goTo("historico");
+      } else {
+        errorEl.textContent = "PIN incorreto. Tente novamente.";
+        errorEl.classList.add("show");
+      }
+    });
+
+    return false;
+  }
+
   function goTo(viewName){
     document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
     document.getElementById("view-" + viewName).classList.add("active");
     document.querySelector(".app").classList.toggle("app--wide", viewName === "historico");
-    if (viewName === "home") renderHome();
-    if (viewName === "saida") renderSaidaSelect();
-    if (viewName === "retorno") renderRetornoSelect();
-    if (viewName === "historico") renderHistorico();
+
+    if (viewName === "pin"){
+      return; // tela estática, não precisa buscar dados
+    }
+
+    if (viewName === "saida"){
+      const select = document.getElementById("saida-carro");
+      select.disabled = true;
+      select.innerHTML = '<option value="" disabled selected>Carregando veículos...</option>';
+    }
+    if (viewName === "retorno"){
+      const select = document.getElementById("retorno-carro");
+      select.disabled = true;
+      select.innerHTML = '<option value="" disabled selected>Carregando veículos...</option>';
+    }
+
+    if (viewName === "historico"){
+      carregarHistorico(function(){ renderHistorico(); });
+    } else {
+      carregarFrota(function(){
+        if (viewName === "home") renderHome();
+        if (viewName === "saida") renderSaidaSelect();
+        if (viewName === "retorno") renderRetornoSelect();
+      });
+    }
   }
 
   function setFiltro(filtro){
@@ -991,6 +1200,7 @@
 
   function renderSaidaSelect(){
     const select = document.getElementById("saida-carro");
+    select.disabled = false;
     select.innerHTML = '<option value="" disabled selected>Selecione um carro disponível</option>';
     const disponiveis = frota.filter(c => c.status === "disponivel");
     if (disponiveis.length === 0){
@@ -1019,6 +1229,7 @@
 
   function renderRetornoSelect(){
     const select = document.getElementById("retorno-carro");
+    select.disabled = false;
     select.innerHTML = '<option value="" disabled selected>Selecione um carro em uso</option>';
     const emUso = frota.filter(c => c.status === "em-uso");
     if (emUso.length === 0){
@@ -1040,10 +1251,10 @@
 
   function updateRetornoInfo(){
     const placa = document.getElementById("retorno-carro").value;
-    const registro = registros.find(r => r.placa === placa && r.status === "aberto");
-    if (registro){
+    const carro = frota.find(c => c.placa === placa);
+    if (carro){
       document.getElementById("retorno-km-inicial").textContent =
-        registro.kmInicial.toLocaleString('pt-BR') + " km";
+        carro.kmAtual.toLocaleString('pt-BR') + " km";
       document.getElementById("retorno-info").style.display = "flex";
       document.getElementById("retorno-info").style.flexDirection = "column";
       document.getElementById("retorno-info").style.gap = "16px";
@@ -1057,42 +1268,50 @@
     const km = parseInt(document.getElementById("saida-km").value, 10);
     const motivo = document.getElementById("saida-motivo").value.trim();
     const errorEl = document.getElementById("saida-error");
-
-    const carro = frota.find(c => c.placa === placa);
-
-    if (!carro){
-      errorEl.textContent = "Selecione um veículo válido.";
-      errorEl.classList.add("show");
-      return false;
-    }
-    if (km < carro.kmAtual){
-      errorEl.textContent = `KM inicial não pode ser menor que o último KM registrado (${carro.kmAtual.toLocaleString('pt-BR')} km).`;
-      errorEl.classList.add("show");
-      return false;
-    }
-
     errorEl.classList.remove("show");
 
-    carro.status = "em-uso";
+    if (!placa || !nome || isNaN(km)){
+      errorEl.textContent = "Preencha veículo, nome e KM inicial.";
+      errorEl.classList.add("show");
+      return false;
+    }
 
-    const registro = {
-      id: idCounter++,
-      placa,
-      colaborador: nome,
-      kmInicial: km,
-      motivo,
-      dataSaida: new Date(),
-      status: "aberto"
-    };
-    registros.push(registro);
+    const submitBtn = document.querySelector("#form-saida .submit-btn");
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Registrando...";
 
-    showConfirm("Saída registrada", `${carro.modelo} (${placa}) liberado para ${nome}.`, [
-      ["Veículo", `${carro.modelo} — ${placa}`],
-      ["Colaborador", nome],
-      ["Data/hora saída", formatDateTime(registro.dataSaida)],
-      ["KM inicial", km.toLocaleString('pt-BR') + " km"],
-      ["Destino/motivo", motivo || "—"],
-    ]);
+    function resetarBotao(){
+      submitBtn.disabled = false;
+      submitBtn.textContent = "Confirmar saída";
+    }
+
+    chamarServidor("registrarSaida", { placa: placa, colaborador: nome, kmInicial: km, motivo: motivo }, function(resultado){
+      resetarBotao();
+      try {
+        frota = resultado.frota;
+        const registro = normalizarRegistro(resultado.registro);
+        const carro = frota.find(c => c.placa === placa);
+
+        if (!carro || !registro){
+          console.error("Saída gravada, mas a resposta veio incompleta.", { placa, resultado });
+          errorEl.textContent = "Saída registrada na planilha, mas houve um problema ao exibir a confirmação. Volte à Home para conferir.";
+          errorEl.classList.add("show");
+          return;
+        }
+
+        showConfirm("Saída registrada", `${carro.modelo} (${placa}) liberado para ${nome}.`, [
+          ["Veículo", `${carro.modelo} — ${placa}`],
+          ["Colaborador", nome],
+          ["Data/hora saída", formatDateTime(registro.dataSaida)],
+          ["KM inicial", km.toLocaleString('pt-BR') + " km"],
+          ["Destino/motivo", motivo || "—"],
+        ]);
+      } catch (err){
+        console.error("Erro ao processar resposta de registrarSaida:", err);
+        errorEl.textContent = "Saída registrada na planilha, mas houve um erro ao exibir os detalhes.";
+        errorEl.classList.add("show");
+      }
+    }, resetarBotao);
 
     return false;
   }
@@ -1102,40 +1321,59 @@
     const placa = document.getElementById("retorno-carro").value;
     const kmFinal = parseInt(document.getElementById("retorno-km").value, 10);
     const errorEl = document.getElementById("retorno-error");
-
-    const registro = registros.find(r => r.placa === placa && r.status === "aberto");
-    const carro = frota.find(c => c.placa === placa);
-
-    if (!registro || !carro){
-      errorEl.textContent = "Selecione um veículo válido.";
-      errorEl.classList.add("show");
-      return false;
-    }
-    if (kmFinal < registro.kmInicial){
-      errorEl.textContent = `KM final não pode ser menor que o KM inicial (${registro.kmInicial.toLocaleString('pt-BR')} km).`;
-      errorEl.classList.add("show");
-      return false;
-    }
-
     errorEl.classList.remove("show");
 
-    registro.kmFinal = kmFinal;
-    registro.kmPercorrido = kmFinal - registro.kmInicial;
-    registro.dataRetorno = new Date();
-    registro.status = "fechado";
+    if (!placa || isNaN(kmFinal)){
+      errorEl.textContent = "Selecione o veículo e informe o KM final.";
+      errorEl.classList.add("show");
+      return false;
+    }
 
-    carro.status = "disponivel";
-    carro.kmAtual = kmFinal;
+    const carroSelecionado = frota.find(c => c.placa === placa);
+    if (!carroSelecionado || carroSelecionado.status !== "em-uso"){
+      errorEl.textContent = "Este veículo não está com um registro em aberto. Atualize a tela e tente novamente.";
+      errorEl.classList.add("show");
+      return false;
+    }
 
-    showConfirm("Retorno registrado", `${carro.modelo} (${placa}) disponível novamente.`, [
-      ["Veículo", `${carro.modelo} — ${placa}`],
-      ["Colaborador", registro.colaborador],
-      ["Data/hora saída", formatDateTime(registro.dataSaida)],
-      ["Data/hora retorno", formatDateTime(registro.dataRetorno)],
-      ["KM inicial", registro.kmInicial.toLocaleString('pt-BR') + " km"],
-      ["KM final", kmFinal.toLocaleString('pt-BR') + " km"],
-      ["KM percorrido", registro.kmPercorrido.toLocaleString('pt-BR') + " km"],
-    ]);
+    const submitBtn = document.querySelector("#form-retorno .submit-btn");
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Registrando...";
+
+    function resetarBotao(){
+      submitBtn.disabled = false;
+      submitBtn.textContent = "Confirmar retorno";
+    }
+
+    chamarServidor("registrarRetorno", { placa: placa, kmFinal: kmFinal }, function(resultado){
+      resetarBotao();
+      try {
+        frota = resultado.frota;
+        const registro = normalizarRegistro(resultado.registro);
+        const carro = frota.find(c => c.placa === placa);
+
+        if (!carro || !registro){
+          console.error("Retorno gravado, mas a resposta veio incompleta.", { placa, resultado });
+          errorEl.textContent = "Retorno registrado na planilha, mas houve um problema ao exibir a confirmação. Volte à Home para conferir.";
+          errorEl.classList.add("show");
+          return;
+        }
+
+        showConfirm("Retorno registrado", `${carro.modelo} (${placa}) disponível novamente.`, [
+          ["Veículo", `${carro.modelo} — ${placa}`],
+          ["Colaborador", registro.colaborador],
+          ["Data/hora saída", formatDateTime(registro.dataSaida)],
+          ["Data/hora retorno", formatDateTime(registro.dataRetorno)],
+          ["KM inicial", registro.kmInicial.toLocaleString('pt-BR') + " km"],
+          ["KM final", registro.kmFinal.toLocaleString('pt-BR') + " km"],
+          ["KM percorrido", registro.kmPercorrido.toLocaleString('pt-BR') + " km"],
+        ]);
+      } catch (err){
+        console.error("Erro ao processar resposta de registrarRetorno:", err);
+        errorEl.textContent = "Retorno registrado na planilha, mas houve um erro ao exibir os detalhes.";
+        errorEl.classList.add("show");
+      }
+    }, resetarBotao);
 
     return false;
   }
@@ -1152,7 +1390,7 @@
   }
 
   // Inicialização
-  renderHome();
+  carregarFrota(renderHome);
 </script>
 
 </body>
