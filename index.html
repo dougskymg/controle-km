@@ -860,7 +860,7 @@
   // CONFIGURAÇÃO — cole aqui a URL do seu Apps Script publicado
   // (Implantar → Gerenciar implantações → copiar a URL que termina em /exec)
   // ============================================================
-  const API_URL = "https://script.google.com/macros/s/AKfycbyJeLtdJAB4dB1HBWYf6CM84xDJYbQ4yxrTbqJmAmVKLrKXR6syOygxMD9h8gqx7nD-/exec";
+  const API_URL = "COLE_AQUI_A_URL_DO_APPS_SCRIPT_TERMINADA_EM_/exec";
 
   let frota = [];
   let registros = [];
@@ -890,12 +890,14 @@
     }
 
     let respondeu = false;
+    let mostrouTimeout = false;
     const timeoutId = setTimeout(function(){
       if (!respondeu){
-        mostrarErroCarregamento("A busca de dados na planilha demorou demais e não respondeu. Verifique sua conexão e tente novamente.");
+        mostrouTimeout = true;
+        mostrarErroCarregamento("A busca de dados na planilha está demorando mais que o normal. Aguarde — o Apps Script às vezes leva alguns segundos extras para 'esquentar'. Se não resolver em breve, verifique sua conexão.");
         if (onErro) onErro();
       }
-    }, 12000);
+    }, 25000);
 
     const query = new URLSearchParams();
     query.set("action", nomeFuncao);
@@ -913,6 +915,7 @@
         respondeu = true;
         clearTimeout(timeoutId);
         if (resultado && resultado.ok){
+          if (mostrouTimeout) fecharBannerErro();
           onSucesso(resultado.dados);
         } else {
           console.error("Erro do servidor (" + nomeFuncao + "):", resultado && resultado.erro);
