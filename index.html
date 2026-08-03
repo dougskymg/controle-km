@@ -864,6 +864,8 @@
 
   let frota = [];
   let registros = [];
+  let ultimaAtualizacaoFrota = 0;
+  const FROTA_CACHE_MS = 6000; // reaproveita a frota buscada há pouco, evita ida-e-volta desnecessária
 
   function normalizarRegistro(r){
     if (!r) return r;
@@ -932,10 +934,25 @@
       });
   }
 
-  /** Carregamento leve — só a frota. Usado em Home, Saída e Retorno. */
-  function carregarFrota(callback){
+  /**
+   * Carregamento leve — só a frota. Usado em Home, Saída e Retorno.
+   * Reaproveita a última busca se ela foi recente (FROTA_CACHE_MS),
+   * evitando ida-e-volta desnecessária ao trocar de tela rapidamente.
+   * Passe forcarAtualizacao=true para ignorar o cache.
+   */
+  function carregarFrota(callback, forcarAtualizacao){
+    const cacheValido = !forcarAtualizacao &&
+      frota.length > 0 &&
+      (Date.now() - ultimaAtualizacaoFrota < FROTA_CACHE_MS);
+
+    if (cacheValido){
+      if (callback) callback();
+      return;
+    }
+
     chamarServidor("getFrota", null, function(dadosFrota){
       frota = dadosFrota;
+      ultimaAtualizacaoFrota = Date.now();
       if (callback) callback();
     });
   }
@@ -1045,12 +1062,14 @@
       return; // tela estática, não precisa buscar dados
     }
 
-    if (viewName === "saida"){
+    const frotaCacheValido = frota.length > 0 && (Date.now() - ultimaAtualizacaoFrota < FROTA_CACHE_MS);
+
+    if (viewName === "saida" && !frotaCacheValido){
       const select = document.getElementById("saida-carro");
       select.disabled = true;
       select.innerHTML = '<option value="" disabled selected>Carregando veículos...</option>';
     }
-    if (viewName === "retorno"){
+    if (viewName === "retorno" && !frotaCacheValido){
       const select = document.getElementById("retorno-carro");
       select.disabled = true;
       select.innerHTML = '<option value="" disabled selected>Carregando veículos...</option>';
@@ -1292,6 +1311,7 @@
       resetarBotao();
       try {
         frota = resultado.frota;
+        ultimaAtualizacaoFrota = Date.now();
         const registro = normalizarRegistro(resultado.registro);
         const carro = frota.find(c => c.placa === placa);
 
@@ -1352,6 +1372,7 @@
       resetarBotao();
       try {
         frota = resultado.frota;
+        ultimaAtualizacaoFrota = Date.now();
         const registro = normalizarRegistro(resultado.registro);
         const carro = frota.find(c => c.placa === placa);
 
